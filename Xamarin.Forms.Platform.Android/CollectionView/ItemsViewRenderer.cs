@@ -20,7 +20,7 @@ namespace Xamarin.Forms.Platform.Android
 		readonly EffectControlProvider _effectControlProvider;
 
 		protected ItemsViewAdapter ItemsViewAdapter;
-		
+
 		int? _defaultLabelFor;
 		bool _disposed;
 
@@ -31,8 +31,8 @@ namespace Xamarin.Forms.Platform.Android
 		ScrollHelper _scrollHelper;
 
 		EmptyViewAdapter _emptyViewAdapter;
-		DataChangeObserver _dataChangeViewObserver;
-		bool _watchingForEmpty;
+		readonly DataChangeObserver _emptyCollectionObserver;
+		readonly DataChangeObserver _itemsUpdateScrollObserver;
 
 		public ItemsViewRenderer(Context context) : base(context)
 		{
@@ -40,6 +40,9 @@ namespace Xamarin.Forms.Platform.Android
 
 			_automationPropertiesProvider = new AutomationPropertiesProvider(this);
 			_effectControlProvider = new EffectControlProvider(this);
+
+			_emptyCollectionObserver = new DataChangeObserver(UpdateEmptyViewVisibility);
+			_itemsUpdateScrollObserver = new DataChangeObserver(AdjustScrollForItemUpdate);
 		}
 
 		ScrollHelper ScrollHelper => _scrollHelper ?? (_scrollHelper = new ScrollHelper(this));
@@ -175,7 +178,7 @@ namespace Xamarin.Forms.Platform.Android
 					? LinearLayoutManager.Horizontal
 					: LinearLayoutManager.Vertical,
 				false);
-		}
+		} 
 
 		void OnElementChanged(ItemsView oldElement, ItemsView newElement)
 		{
@@ -205,6 +208,10 @@ namespace Xamarin.Forms.Platform.Android
 			{
 				UpdateEmptyView();
 			}
+			else if (changedProperty.Is(ItemsView.ItemsUpdatingScrollModeProperty))
+			{
+				UpdateItemsUpatingScrollMode();
+			}
 		}
 
 		protected virtual void UpdateItemsSource()
@@ -214,11 +221,15 @@ namespace Xamarin.Forms.Platform.Android
 				return;
 			}
 
-			// Stop watching the old adapter to see if it's empty (if we _are_ watching)
-			Unwatch(ItemsViewAdapter ?? GetAdapter());
+			// Stop watching the old adapter 
+			var adapter = ItemsViewAdapter ?? GetAdapter();
+			_emptyCollectionObserver.Stop(adapter);
+			_itemsUpdateScrollObserver.Stop(adapter);
 
 			UpdateAdapter();
 
+			// Set up any properties which require observing data changes in the adapter
+			UpdateItemsUpatingScrollMode();
 			UpdateEmptyView();
 		}
 
@@ -226,34 +237,6 @@ namespace Xamarin.Forms.Platform.Android
 		{
 			ItemsViewAdapter = new ItemsViewAdapter(ItemsView);
 			SwapAdapter(ItemsViewAdapter, true);
-		}
-
-		void Unwatch(Adapter adapter)
-		{
-			if (_watchingForEmpty && adapter != null && _dataChangeViewObserver != null)
-			{
-				adapter.UnregisterAdapterDataObserver(_dataChangeViewObserver);
-			}
-
-			_watchingForEmpty = false;
-		}
-
-		// TODO hartez 2018/10/24 19:25:14 I don't like these method names; too generic 	
-		// TODO hartez 2018/11/05 22:37:42 Also, thinking all the EmptyView stuff should be moved to a helper	
-		void Watch(Adapter adapter)
-		{
-			if (_watchingForEmpty)
-			{
-				return;
-			}
-
-			if (_dataChangeViewObserver == null)
-			{
-				_dataChangeViewObserver = new DataChangeObserver(UpdateEmptyViewVisibility);
-			}
-
-			adapter.RegisterAdapterDataObserver(_dataChangeViewObserver);
-			_watchingForEmpty = true;
 		}
 
 		protected virtual void SetUpNewElement(ItemsView newElement)
@@ -314,12 +297,24 @@ namespace Xamarin.Forms.Platform.Android
 			// Stop listening for ScrollTo requests
 			oldElement.ScrollToRequested -= ScrollToRequested;
 
-			var adapter = GetAdapter();
-
-			if (adapter != null)
+			if (ItemsViewAdapter != null)
 			{
-				SetAdapter(null);
-				adapter.Dispose();
+				// Stop watching for empty items or scroll adjustments
+				_emptyCollectionObserver.Stop(ItemsViewAdapter);
+				_itemsUpdateScrollObserver.Stop(ItemsViewAdapter);
+			}
+
+			// Unhook whichever adapter is active
+			SetAdapter(null);
+			
+			if (_emptyViewAdapter != null)
+			{
+				_emptyViewAdapter.Dispose();
+			}
+
+			if (ItemsViewAdapter != null)
+			{
+				ItemsViewAdapter.Dispose();
 			}
 
 			if (_snapManager != null)
@@ -396,14 +391,39 @@ namespace Xamarin.Forms.Platform.Android
 
 				_emptyViewAdapter.EmptyView = emptyView;
 				_emptyViewAdapter.EmptyViewTemplate = emptyViewTemplate;
-				Watch(ItemsViewAdapter);
+				_emptyCollectionObserver.Start(ItemsViewAdapter);
 			}
 			else
 			{
-				Unwatch(ItemsViewAdapter);
+				_emptyCollectionObserver.Stop(ItemsViewAdapter);
 			}
 
 			UpdateEmptyViewVisibility();
+		}
+
+		protected virtual void UpdateItemsUpatingScrollMode()
+		{
+			// TODO ezhart ItemsUpdatingScrollMode
+
+			// Change the dataChangeViewObserver to be ON if ItemsUpdateScrollMode is KeepLastItemInView (may need it for scroll offset, too, later)
+			// So it's on if there's an emptyview or if KeepLastItemInView mode is on (_watchingForEmpty will probably change its name)
+			// When there's a data change, always scroll to the end.
+
+			if (ItemsViewAdapter == null || ItemsView == null)
+			{
+				return;
+			}
+
+			if (ItemsView.ItemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepLastItemInView)
+			{
+				_itemsUpdateScrollObserver.Start(ItemsViewAdapter);
+			}
+			else
+			{
+				_itemsUpdateScrollObserver.Stop(ItemsViewAdapter);
+			}
+
+			AdjustScrollForItemUpdate();
 		}
 
 		protected virtual void ReconcileFlowDirectionAndLayout()
@@ -476,6 +496,7 @@ namespace Xamarin.Forms.Platform.Android
 				SwapAdapter(_emptyViewAdapter, true);
 
 				// TODO hartez 2018/10/24 17:34:36 If this works, cache this layout manager as _emptyLayoutManager	
+				// TODO Also, cache whether the empty view is visible so we don't have to call SwapAdapter when count goes from >0 to also >0
 				SetLayoutManager(new LinearLayoutManager(Context));
 			}
 			else
@@ -483,6 +504,11 @@ namespace Xamarin.Forms.Platform.Android
 				SwapAdapter(ItemsViewAdapter, true);
 				SetLayoutManager(SelectLayoutManager(_layout));
 			}
+		}
+
+		internal void AdjustScrollForItemUpdate()
+		{
+			System.Diagnostics.Debug.WriteLine($">>>>> AdjustScrollForItemUpdate");
 		}
 	}
 }
