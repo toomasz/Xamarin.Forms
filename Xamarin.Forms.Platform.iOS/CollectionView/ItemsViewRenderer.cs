@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using Foundation;
 using UIKit;
 
@@ -47,6 +48,10 @@ namespace Xamarin.Forms.Platform.iOS
 			{
 				UpdateItemSizingStrategy();
 			}
+			else if (changedProperty.Is(ItemsView.ItemsUpdatingScrollModeProperty))
+			{
+				UpdateItemsUpdatingScrollMode();
+			}
 		}
 
 		protected virtual ItemsViewLayout SelectLayout(IItemsLayout layoutSpecification)
@@ -88,6 +93,7 @@ namespace Xamarin.Forms.Platform.iOS
 			SetNativeControl(ItemsViewController.View);
 			ItemsViewController.CollectionView.BackgroundColor = UIColor.Clear;
 			ItemsViewController.UpdateEmptyView();
+			UpdateItemsUpdatingScrollMode();
 
 			// Listen for ScrollTo requests
 			newElement.ScrollToRequested += ScrollToRequested;
@@ -117,6 +123,11 @@ namespace Xamarin.Forms.Platform.iOS
 				// we'll just have to swap out the whole UICollectionViewLayout
 				UpdateLayout();
 			}
+		}
+
+		protected virtual void UpdateItemsUpdatingScrollMode()
+		{
+			_layout.ItemsUpdatingScrollMode = Element.ItemsUpdatingScrollMode;
 		}
 
 		protected virtual ItemsViewController CreateController(ItemsView newElement, ItemsViewLayout layout)
