@@ -944,7 +944,10 @@ namespace Xamarin.Forms.Build.Tasks
 			var declaringType = context.Body.Method.DeclaringType;
 			while (declaringType.IsNested)
 				declaringType = declaringType.DeclaringType;
-			var handler = declaringType.AllMethods().FirstOrDefault(md => md.Name == value as string);
+			var (handler, handlerDeclTypeRef) = declaringType.AllMethods().FirstOrDefault(md => md.methodDef.Name == value as string);
+			MethodReference handlerRef = null;
+			if (handler != null)
+				handlerRef = handler.ResolveGenericParameters(handlerDeclTypeRef, module);
 			if (handler == null) 
 				throw new XamlParseException($"EventHandler \"{value}\" not found in type \"{context.Body.Method.DeclaringType.FullName}\"", iXmlLineInfo);
 
@@ -963,9 +966,9 @@ namespace Xamarin.Forms.Build.Tasks
 
 			if (handler.IsVirtual) {
 				yield return Create(Ldarg_0);
-				yield return Create(Ldvirtftn, handler);
+				yield return Create(Ldvirtftn, handlerRef);
 			} else
-				yield return Create(Ldftn, handler);
+				yield return Create(Ldftn, handlerRef);
 
 			//FIXME: eventually get the right ctor instead fo the First() one, just in case another one could exists (not even sure it's possible).
 			var ctor = module.ImportReference(eventinfo.EventType.ResolveCached().GetConstructors().First());
