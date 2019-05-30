@@ -336,9 +336,12 @@ namespace Xamarin.Forms.Platform.Android
 
 		internal static IVisualElementRenderer CreateRenderer(VisualElement element, Context context)
 		{
+			Profile.FrameBegin(nameof(CreateRenderer));
 			IVisualElementRenderer renderer = Registrar.Registered.GetHandlerForObject<IVisualElementRenderer>(element, context)
 				?? new DefaultRenderer(context);
+			Profile.FramePartition(element.GetType().Name);
 			renderer.SetElement(element);
+			Profile.FrameEnd();
 
 			return renderer;
 		}
@@ -456,6 +459,11 @@ namespace Xamarin.Forms.Platform.Android
 
 		internal void SetPage(Page newRoot)
 		{
+			if (Page == newRoot)
+			{
+				return;
+			}
+
 			var layout = false;
 			List<IVisualElementRenderer> toDispose = null;
 
@@ -1183,7 +1191,7 @@ namespace Xamarin.Forms.Platform.Android
 
 		#endregion
 
-		internal class DefaultRenderer : VisualElementRenderer<View>
+		internal class DefaultRenderer : VisualElementRenderer<View>, ILayoutChanges
 		{
 			public bool NotReallyHandled { get; private set; }
 			IOnTouchListener _touchListener;

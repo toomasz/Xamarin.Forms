@@ -1,11 +1,7 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Xamarin.Forms;
 using Xamarin.Forms.Internals;
 using Xamarin.Forms.StyleSheets;
-
-[assembly: AssemblyVersion("2.0.0.0")]
-[assembly: AssemblyFileVersion("2.0.0.0")]
 
 [assembly: InternalsVisibleTo("iOSUnitTests")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.Controls")]
@@ -28,8 +24,8 @@ using Xamarin.Forms.StyleSheets;
 [assembly: InternalsVisibleTo("Xamarin.Forms.Core.macOS.UITests")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.iOS.UITests")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.Android.UITests")]
-[assembly: InternalsVisibleTo("Xamarin.Forms.Loader")]
-// Xamarin.Forms.Loader.dll, Xamarin.Forms.Internals.ResourceLoader.ResourceProvider, kzu@microsoft.com
+[assembly: InternalsVisibleTo("Xamarin.Forms.Loader")] // Xamarin.Forms.Loader.dll, Xamarin.Forms.Internals.ResourceLoader.ResourceProvider, kzu@microsoft.com
+[assembly: InternalsVisibleTo("Xamarin.HotReload.Forms")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.UITest.Validator")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.Build.Tasks")]
 [assembly: InternalsVisibleTo("Xamarin.Forms.Platform")]
@@ -69,7 +65,7 @@ using Xamarin.Forms.StyleSheets;
 [assembly: StyleProperty("min-width", typeof(VisualElement), nameof(VisualElement.MinimumWidthRequestProperty))]
 [assembly: StyleProperty("opacity", typeof(VisualElement), nameof(VisualElement.OpacityProperty))]
 [assembly: StyleProperty("padding", typeof(IPaddingElement), nameof(PaddingElement.PaddingProperty))]
-[assembly: StyleProperty("padding-left", typeof(IPaddingElement), nameof(PaddingElement.PaddingLeftProperty), PropertyOwnerType=typeof(PaddingElement))]
+[assembly: StyleProperty("padding-left", typeof(IPaddingElement), nameof(PaddingElement.PaddingLeftProperty), PropertyOwnerType = typeof(PaddingElement))]
 [assembly: StyleProperty("padding-top", typeof(IPaddingElement), nameof(PaddingElement.PaddingTopProperty), PropertyOwnerType = typeof(PaddingElement))]
 [assembly: StyleProperty("padding-right", typeof(IPaddingElement), nameof(PaddingElement.PaddingRightProperty), PropertyOwnerType = typeof(PaddingElement))]
 [assembly: StyleProperty("padding-bottom", typeof(IPaddingElement), nameof(PaddingElement.PaddingBottomProperty), PropertyOwnerType = typeof(PaddingElement))]

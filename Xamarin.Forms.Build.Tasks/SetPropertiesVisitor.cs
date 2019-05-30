@@ -378,8 +378,12 @@ namespace Xamarin.Forms.Build.Tasks
 					break;
 				n = n.Parent as IElementNode;
 			}
+
+			if (dataTypeNode is null)
+				yield break;
+
 			if (!((dataTypeNode as ValueNode)?.Value is string dataType))
-				yield break; //throw
+				throw new XamlParseException("x:DataType expects a string literal", dataTypeNode as IXmlLineInfo);
 
 			var prefix = dataType.Contains(":") ? dataType.Substring(0, dataType.IndexOf(":", StringComparison.Ordinal)) : "";
 			var namespaceuri = node.NamespaceResolver.LookupNamespace(prefix) ?? "";
@@ -468,7 +472,7 @@ namespace Xamarin.Forms.Build.Tasks
 					var property = previousPartTypeRef.GetProperty(pd => pd.Name == p && pd.GetMethod != null && pd.GetMethod.IsPublic, out var propDeclTypeRef)
 					                                  ?? throw new XamlParseException($"Binding: Property '{p}' not found on '{previousPartTypeRef}'", lineInfo);
 					properties.Add((property, propDeclTypeRef, null));
-					previousPartTypeRef = property.PropertyType;
+					previousPartTypeRef = property.PropertyType.ResolveGenericParameters(propDeclTypeRef);
 				}
 				if (indexArg != null) {
 					var defaultMemberAttribute = previousPartTypeRef.GetCustomAttribute(module, ("mscorlib", "System.Reflection", "DefaultMemberAttribute"));
@@ -933,20 +937,12 @@ namespace Xamarin.Forms.Build.Tasks
 			var value = ((ValueNode)valueNode).Value;
 
 			yield return Create(Ldloc, parent);
-			if (context.Root is VariableDefinition)
-				foreach (var instruction in (context.Root as VariableDefinition).LoadAs(adder.Parameters[0].ParameterType.ResolveGenericParameters(adder), module))
-					yield return instruction;
-			else if (context.Root is FieldDefinition) {
-				yield return Create(Ldarg_0);
-				yield return Create(Ldfld, context.Root as FieldDefinition);
-			} else 
-				throw new InvalidProgramException();
 			var declaringType = context.Body.Method.DeclaringType;
 			while (declaringType.IsNested)
 				declaringType = declaringType.DeclaringType;
 			var handler = declaringType.AllMethods().FirstOrDefault(md => md.Name == value as string);
 			if (handler == null) 
-				throw new XamlParseException($"EventHandler \"{value}\" not found in type \"{context.Body.Method.DeclaringType.FullName}\"", iXmlLineInfo);
+				throw new XamlParseException($"EventHandler \"{value}\" not found in type \"{declaringType}\"", iXmlLineInfo);
 
 			//check if the handler signature matches the Invoke signature;
 			var invoke = module.ImportReference(eventinfo.EventType.ResolveCached().GetMethods().First(md => md.Name == "Invoke"));
@@ -961,15 +957,29 @@ namespace Xamarin.Forms.Build.Tasks
 						throw new XamlParseException($"Signature (parameter {i}) of EventHandler \"{context.Body.Method.DeclaringType.FullName}.{value}\" doesn't match the event type", iXmlLineInfo);
 			//TODO check generic parameters if any
 
+			//FIXME: eventually get the right ctor instead fo the First() one, just in case another one could exists (not even sure it's possible).
+			var ctor = module.ImportReference(eventinfo.EventType.ResolveCached().GetConstructors().First());
+			ctor = ctor.ResolveGenericParameters(eventinfo.EventType, module);
+
+			if (handler.IsStatic) {
+				yield return Create(Ldnull);
+			} else {
+				if (context.Root is VariableDefinition)
+					foreach (var instruction in (context.Root as VariableDefinition).LoadAs(ctor.Parameters[0].ParameterType.ResolveGenericParameters(ctor), module))
+						yield return instruction;
+				else if (context.Root is FieldDefinition) {
+					yield return Create(Ldarg_0);
+					yield return Create(Ldfld, context.Root as FieldDefinition);
+				} else 
+					throw new InvalidProgramException();
+			}
+
 			if (handler.IsVirtual) {
 				yield return Create(Ldarg_0);
 				yield return Create(Ldvirtftn, handler);
 			} else
 				yield return Create(Ldftn, handler);
 
-			//FIXME: eventually get the right ctor instead fo the First() one, just in case another one could exists (not even sure it's possible).
-			var ctor = module.ImportReference(eventinfo.EventType.ResolveCached().GetConstructors().First());
-			ctor = ctor.ResolveGenericParameters(eventinfo.EventType, module);
 			yield return Create(Newobj, module.ImportReference(ctor));
 			//Check if the handler has the same signature as the ctor (it should)
 			yield return Create(Callvirt, module.ImportReference(adder));
