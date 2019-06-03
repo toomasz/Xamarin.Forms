@@ -115,8 +115,6 @@ namespace Xamarin.Forms.Platform.Android
 			//On Width or Height changes, the anchors needs to be updated
 			UpdateAnchorX();
 			UpdateAnchorY();
-
-			MaybeRequestLayout();
 		}
 
 		void HandlePropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -184,7 +182,10 @@ namespace Xamarin.Forms.Platform.Android
 			_batchedProperties.Clear();
 
 			if (_layoutNeeded)
+			{
+				UpdateLayout();
 				MaybeRequestLayout();
+			}
 			_layoutNeeded = false;
 		}
 
