@@ -1,25 +1,56 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Shell xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Xamarin.Forms.Sandbox.ShellPage"
              xmlns:ios="clr-namespace:Xamarin.Forms.PlatformConfiguration.iOSSpecific;assembly=Xamarin.Forms.Core"
-             ios:Page.UseSafeArea="true">
+             
+               Shell.FlyoutBehavior="Flyout"  
+               FlyoutHeaderBehavior="Fixed"
+               Shell.FlyoutBackgroundColor="Purple">
 
-    <Shell.FlyoutHeader>
-        <StackLayout>
-            <Button Text="I am a Button"  />
-        </StackLayout>
-    </Shell.FlyoutHeader>
-    <ShellContent>
-        <ContentPage>
-            <Shell.TitleView>
-                <StackLayout>
-                    <Button Text="I am a Button"  />
-                </StackLayout>
-            </Shell.TitleView>
-            <StackLayout>
-                <Button Text="I am a Button"  />
-            </StackLayout>
-        </ContentPage>
-    </ShellContent>
+    <Shell.FlyoutHeaderTemplate>
+        <DataTemplate>
+            <Image Margin="0"  HeightRequest="300" MinimumHeightRequest="100"  BackgroundColor="Black" Source="xamarin_logo.png"></Image>
+        </DataTemplate>
+    </Shell.FlyoutHeaderTemplate>
+    <FlyoutItem>
+        <Tab>
+            <ShellContent Shell.FlyoutBehavior="Disabled" Title="Tab 1">
+                <ContentPage  >
+                    <ScrollView>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="60" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="70" />
+                            </Grid.RowDefinitions>
+                            <Label Text="I am a top"  />
+                            <Label Grid.Row="1"  Text="I am a Button"  />
+                            <Entry Grid.Row="2" />
+                        </Grid>
+                    </ScrollView>
+                </ContentPage>
+            </ShellContent>
+            <ShellContent Shell.FlyoutBehavior="Disabled" Title="Tab 2">
+                <ContentPage  >
+                    <ScrollView>
+                        <StackLayout>
+                            <Button Clicked="Handle_Clicked" Text="I am a top"  />
+                            <Entry Text="" x:Name="PaddingToUse"></Entry>
+                            <StackLayout Orientation="Horizontal">
+                                <Label Text="Navigation Bar"></Label>
+                                <CheckBox x:Name="isChecked"></CheckBox>
+                            </StackLayout>
+                            <StackLayout Orientation="Horizontal">
+                                <Label Text="Safe Padding"></Label>
+                                <CheckBox x:Name="enableSafePadding"></CheckBox>
+                            </StackLayout>
+                            <Button Clicked="Handle_Clicked" Text="I am a Button"  />
+                            <Button Clicked="Handle2_Clicked" Text="I am a Better Button"  />
+                        </StackLayout>
+                    </ScrollView>
+                </ContentPage>
+            </ShellContent>
+        </Tab>
+    </FlyoutItem>
 </Shell>
