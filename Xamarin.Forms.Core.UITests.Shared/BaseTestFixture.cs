@@ -36,7 +36,7 @@ namespace Xamarin.Forms.Core.UITests
 			{
 				s_testsrun = 0;
 
-				CoreUITestsSetup.LaunchApp();
+				LaunchApp();
 
 				FixtureSetup();
 			}
@@ -85,7 +85,7 @@ namespace Xamarin.Forms.Core.UITests
 						// Something has failed and we're stuck in a place where we can't navigate
 						// to the test. Usually this is because we're getting network/HTTP errors 
 						// communicating with the server on the device. So we'll try restarting the app.
-						CoreUITestsSetup.LaunchApp();
+						LaunchApp();
 					}
 					else
 					{
@@ -95,6 +95,15 @@ namespace Xamarin.Forms.Core.UITests
 					}
 				}
 			}
+		}
+
+		public static void LaunchApp()
+		{
+			BaseTestFixture.App = null;
+			BaseTestFixture.App = AppSetup.Setup();
+
+			BaseTestFixture.App.SetOrientationPortrait();
+			BaseTestFixture.ScreenBounds = BaseTestFixture.App.RootViewRect();
 		}
 
 		protected void ResetApp()
@@ -111,31 +120,3 @@ namespace Xamarin.Forms.Core.UITests
 		}
 	}
 }
-
-#if UITEST
-
-namespace Xamarin.Forms.Core.UITests
-{
-	using NUnit.Framework;
-
-	[SetUpFixture]
-	public class CoreUITestsSetup
-	{
-		[SetUp]
-		public void RunBeforeAnyTests()
-		{
-			LaunchApp();
-		}
-
-		public static void LaunchApp()
-		{
-			BaseTestFixture.App = null;
-			BaseTestFixture.App = AppSetup.Setup();
-
-			BaseTestFixture.App.SetOrientationPortrait();
-			BaseTestFixture.ScreenBounds = BaseTestFixture.App.RootViewRect();
-		}
-	}
-}
-
-#endif
